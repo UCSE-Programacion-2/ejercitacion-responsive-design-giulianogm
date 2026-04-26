@@ -1,0 +1,77 @@
+name: GitHub Classroom Workflow
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+  repository_dispatch:
+
+permissions:
+  checks: write
+  actions: read
+  contents: read
+
+jobs:
+  run-autograding-tests:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Permisos al script
+        run: chmod +x scripts/classroom-check.sh
+
+      - name: Estructura base del proyecto
+        id: base-structure
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Estructura base
+          command: bash scripts/classroom-check.sh base-structure
+          expected-output: CORRECTO
+          comparison-method: exact
+          timeout: 2
+          max-score: 2
+
+      - name: Media queries declaradas
+        id: media-queries
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Media queries 768 y 450
+          command: bash scripts/classroom-check.sh media-queries
+          expected-output: CORRECTO
+          comparison-method: exact
+          timeout: 2
+          max-score: 3
+
+      - name: Ajustes responsive tablet
+        id: tablet-layout
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Layout tablet
+          command: bash scripts/classroom-check.sh tablet-layout
+          expected-output: CORRECTO
+          comparison-method: exact
+          timeout: 2
+          max-score: 2
+
+      - name: Ajustes responsive movil
+        id: mobile-layout
+        uses: classroom-resources/autograding-io-grader@v1
+        with:
+          test-name: Layout movil
+          command: bash scripts/classroom-check.sh mobile-layout
+          expected-output: CORRECTO
+          comparison-method: exact
+          timeout: 2
+          max-score: 3
+
+      - name: Autograding Reporter
+        uses: classroom-resources/autograding-grading-reporter@v1
+        env:
+          BASE-STRUCTURE_RESULTS: "${{steps.base-structure.outputs.result}}"
+          MEDIA-QUERIES_RESULTS: "${{steps.media-queries.outputs.result}}"
+          TABLET-LAYOUT_RESULTS: "${{steps.tablet-layout.outputs.result}}"
+          MOBILE-LAYOUT_RESULTS: "${{steps.mobile-layout.outputs.result}}"
+        with:
+          runners: base-structure,media-queries,tablet-layout,mobile-layout

@@ -1,0 +1,121 @@
+name: Setup Classroom Issues
+
+on:
+  push:
+    branches: ["main", "master"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: setup-issues-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  create-issues:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Crear issues iniciales de forma idempotente
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const issueDefinitions = [
+              {
+                title: "[Responsive] Configurar media query para tablet (max-width: 768px)",
+                body: [
+                  "## Objetivo",
+                  "Adaptar el layout general para pantallas tipo tablet.",
+                  "",
+                  "## Requisitos minimos",
+                  "- Declarar una media query para `max-width: 768px`.",
+                  "- Ajustar distribuciones horizontales a verticales cuando corresponda.",
+                  "- Mantener legibilidad de textos y separaciones.",
+                  "",
+                  "## Criterio automatico",
+                  "El check de Classroom verifica que exista la media query y cambios estructurales coherentes."
+                ].join("\n"),
+                labels: ["classroom-assignment", "responsive", "tablet"]
+              },
+              {
+                title: "[Responsive] Configurar media query para movil (max-width: 450px)",
+                body: [
+                  "## Objetivo",
+                  "Optimizar la vista para celulares.",
+                  "",
+                  "## Requisitos minimos",
+                  "- Declarar una media query para `max-width: 450px`.",
+                  "- Asegurar que tarjetas y bloques de contacto ocupen ancho completo o adaptado.",
+                  "- Evitar cortes de contenido en pantallas chicas.",
+                  "",
+                  "## Criterio automatico",
+                  "El check de Classroom valida ajustes de ancho en componentes clave."
+                ].join("\n"),
+                labels: ["classroom-assignment", "responsive", "mobile"]
+              },
+              {
+                title: "[Responsive] Mejorar navegacion y espaciado en pantallas reducidas",
+                body: [
+                  "## Objetivo",
+                  "Mejorar la experiencia de uso en dispositivos pequenos.",
+                  "",
+                  "## Requisitos minimos",
+                  "- Reordenar o ajustar navegacion para que no se superponga.",
+                  "- Ajustar paddings/margenes para evitar saturacion visual.",
+                  "- Mantener jerarquia visual en titulos y secciones.",
+                  "",
+                  "## Criterio de correccion",
+                  "Se evalua por observacion y por consistencia con los bocetos de referencia."
+                ].join("\n"),
+                labels: ["classroom-assignment", "ux", "responsive"]
+              },
+              {
+                title: "[Revisión docente] Coincidencia visual con bocetos y calidad final",
+                body: [
+                  "## Revisión humana obligatoria",
+                  "Esta issue resume criterios que no se pueden validar al 100% con scripts.",
+                  "",
+                  "## El docente revisara",
+                  "- Correspondencia general con `Bocetos/Boceto_desktop.png`, `Bocetos/Boceto_tablet.png` y `Bocetos/Boceto_mobile.png`.",
+                  "- Calidad visual (alineacion, respiracion, consistencia tipografica).",
+                  "- Ausencia de desbordes horizontales y legibilidad global.",
+                  "",
+                  "> Importante: aprobar checks automaticos no garantiza aprobacion final."
+                ].join("\n"),
+                labels: ["classroom-assignment", "revision-docente"]
+              }
+            ];
+
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: "all",
+              per_page: 100
+            });
+
+            const existingTitles = new Set(
+              existing
+                .filter((i) => !i.pull_request)
+                .map((i) => i.title.trim())
+            );
+
+            for (const definition of issueDefinitions) {
+              if (existingTitles.has(definition.title)) {
+                core.info(`Issue existente, se omite: ${definition.title}`);
+                continue;
+              }
+
+              await github.rest.issues.create({
+                owner,
+                repo,
+                title: definition.title,
+                body: definition.body,
+                labels: definition.labels
+              });
+              core.info(`Issue creada: ${definition.title}`);
+            }
