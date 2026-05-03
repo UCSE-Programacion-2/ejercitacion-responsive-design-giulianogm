@@ -185,12 +185,10 @@ footer ul {
 /*** Responsive */
 
 @media (max-width:768px){
-
     section>div{
     flex-direction: column;
     align-items: center;
    }
-
    .card{
     width: 80vw;
     margin: 10px 0;
